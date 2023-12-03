@@ -5,7 +5,7 @@ namespace LiveSplit.UI.Components
 {
     public class TimerPauseFactory : IComponentFactory
     {
-        public string ComponentName => "Timer Pause";
+        public string ComponentName => "Timer Pause (Boil)";
 
         public string Description => "Allows you to pause the run and continue later.";
 

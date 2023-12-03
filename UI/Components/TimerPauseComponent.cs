@@ -2,6 +2,7 @@
 using System;
 using System.Windows.Forms;
 using System.Xml;
+using static System.Windows.Forms.AxHost;
 
 namespace LiveSplit.UI.Components
 {
@@ -61,21 +62,57 @@ namespace LiveSplit.UI.Components
 
         private void State_OnStart(object sender, EventArgs e)
         {
-            for (int i = State.Run.Count - 1; i >= 0; --i)
-            {
-                ISegment currentSegment = State.Run[i];
-                Time splitTime = currentSegment.PersonalBestSplitTime;
-                if (splitTime[State.CurrentTimingMethod] != null)
-                {
-                    IsSplitting = true;
-                    SplitCounter = i + 1;
-                    break;
-                }
-            }
+            int splitTimes = State.Run.Count;
+
+            SplitCounter = getLastAssignedPB_Split(splitTimes);
+            IsSplitting = SplitCounter > 0;
+
             if (IsSplitting)
             {
-                Timer.SkipSplit();
+                Timer.SkipSplit(); //Skip all existing splits (Trigger OnSkip Event)
             }
+        }
+
+        private Time getPersonalBestSplitTime(LiveSplitState state, int split)
+        {
+            ISegment segment = state.Run[split];
+            return segment.PersonalBestSplitTime;
+        }
+
+        private int getLastAssignedPB_Split(int splitTimes)
+        {
+            for (int split = splitTimes - 1; split >= 0; --split)
+            {
+                //Check which split is the last split with an assigned personal best split time
+                //-Set the SplitCounter to the index of this split + 1
+                //-Exit the loop
+                Time splitTime = getPersonalBestSplitTime(State, split);
+                if (splitTime[State.CurrentTimingMethod] != null)
+                {
+                    //IsSplitting = true;
+                    //SplitCounter = split + 1;
+                    //break;
+                    return split + 1;
+                }
+            }
+            return 0;
+        }
+
+        private ISegment getPreviousSplit(LiveSplitState state)
+        {
+            return state.Run[state.CurrentSplitIndex - 1];
+        }
+
+        private ISegment getNextSplit(LiveSplitState state)
+        {
+            return state.Run[state.CurrentSplitIndex + 1];
+
+        }
+
+        private ISegment getCurrentSplit(LiveSplitState state)
+        {
+            return state.Run[state.CurrentSplitIndex];
+
         }
 
         protected void State_OnPause(object sender, EventArgs e)
@@ -85,10 +122,12 @@ namespace LiveSplit.UI.Components
 
         protected void State_OnSkipSplit(object sender, EventArgs e)
         {
+            //Skip all existing splits and set their existing Split Times
             if (IsSplitting)
             {
-                ISegment previousSplit = State.Run[State.CurrentSplitIndex - 1];
+                ISegment previousSplit = getPreviousSplit(State);
                 previousSplit.SplitTime = previousSplit.PersonalBestSplitTime;
+
                 --SplitCounter;
                 if (SplitCounter > 0)
                     Timer.SkipSplit();
@@ -99,14 +138,15 @@ namespace LiveSplit.UI.Components
 
         protected void State_OnSplit(object sender, EventArgs e)
         {
-            ISegment previousSplit = State.Run[State.CurrentSplitIndex - 1];
+            //Set the previous PB Split Time to the previous Split Time
+            ISegment previousSplit = getPreviousSplit(State);
             previousSplit.PersonalBestSplitTime = previousSplit.SplitTime;
         }
 
         protected void State_OnUndoSplit(object sender, EventArgs e)
         {
-            ISegment nextSplit = State.Run[State.CurrentSplitIndex];
-            nextSplit.PersonalBestSplitTime = new Time();
+            //Clear the current Split Time
+            getCurrentSplit(State).PersonalBestSplitTime = new Time();
         }
     }
 }
