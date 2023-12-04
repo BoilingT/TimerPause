@@ -67,7 +67,7 @@ namespace LiveSplit.UI.Components
 
             int splitTimes = State.Run.Count;
 
-            SplitCounter = getLastAssignedPB_Split(splitTimes);
+            SplitCounter = getSplitAmount(splitTimes);
             IsSplitting = SplitCounter > 0;
             IsAutoSplitting = State.Run.AutoSplitter.IsActivated;
 
@@ -83,7 +83,7 @@ namespace LiveSplit.UI.Components
             return segment.PersonalBestSplitTime;
         }
 
-        private int getLastAssignedPB_Split(int splitTimes)
+        private int getSplitAmount(int splitTimes)
         {
             for (int split = splitTimes - 1; split >= 0; --split)
             {
