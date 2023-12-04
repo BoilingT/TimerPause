@@ -14,6 +14,8 @@ namespace LiveSplit.UI.Components
         public bool Activated { get; set; }
 
         private bool IsSplitting { get; set; }
+        private bool IsAutoSplitting { get; set; }
+        private int AutoSplitCounter { get; set; }
         private int SplitCounter { get; set; }
 
         private LiveSplitState State { get; set; }
@@ -62,12 +64,14 @@ namespace LiveSplit.UI.Components
 
         private void State_OnStart(object sender, EventArgs e)
         {
+
             int splitTimes = State.Run.Count;
 
             SplitCounter = getLastAssignedPB_Split(splitTimes);
             IsSplitting = SplitCounter > 0;
+            IsAutoSplitting = State.Run.AutoSplitter.IsActivated;
 
-            if (IsSplitting)
+            if (IsSplitting && !IsAutoSplitting)
             {
                 Timer.SkipSplit(); //Skip all existing splits (Trigger OnSkip Event)
             }
@@ -123,8 +127,9 @@ namespace LiveSplit.UI.Components
         protected void State_OnSkipSplit(object sender, EventArgs e)
         {
             //Skip all existing splits and set their existing Split Times
-            if (IsSplitting)
+            if (IsSplitting && !IsAutoSplitting)
             {
+                //Set the previous Split time to the previous PB Split Time
                 ISegment previousSplit = getPreviousSplit(State);
                 previousSplit.SplitTime = previousSplit.PersonalBestSplitTime;
 
@@ -138,9 +143,25 @@ namespace LiveSplit.UI.Components
 
         protected void State_OnSplit(object sender, EventArgs e)
         {
-            //Set the previous PB Split Time to the previous Split Time
             ISegment previousSplit = getPreviousSplit(State);
-            previousSplit.PersonalBestSplitTime = previousSplit.SplitTime;
+            if (IsSplitting && IsAutoSplitting)
+            {
+                //Set the previous Split time to the previous PB Split Time
+                previousSplit.SplitTime = previousSplit.PersonalBestSplitTime;
+                --SplitCounter;
+                ++AutoSplitCounter;
+
+                IsAutoSplitting = (SplitCounter - AutoSplitCounter) > 0;
+                if (!IsAutoSplitting)
+                {
+                    Timer.SkipSplit();
+                }
+            }
+            else
+            {
+                //Set the previous PB Split Time to the previous Split Time
+                previousSplit.PersonalBestSplitTime = previousSplit.SplitTime;
+            }
         }
 
         protected void State_OnUndoSplit(object sender, EventArgs e)
